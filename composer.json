@@ -1,0 +1,14 @@
+{
+    "name": "wwwision/eventr",
+    "type": "typo3-flow-package",
+    "description": "WIP",
+    "require": {
+        "typo3/flow": "~3.0",
+        "dbellettini/eventstore-client": "~0.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Wwwision\\Eventr\\": "Classes"
+        }
+    }
+}

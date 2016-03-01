@@ -1,0 +1,5 @@
+'EventStore\EventStore':
+  factoryObjectName: 'Wwwision\Eventr\EventStoreFactory'
+  arguments:
+    1:
+      value: 'http://127.0.0.1:2113'
