@@ -1,71 +1,42 @@
 <?php
 namespace Wwwision\Eventr;
 
-use GuzzleHttp\Client as GuzzleClient;
 use TYPO3\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Dto\Event;
 
 /**
  */
-class EventStream
+final class EventStream
 {
     /**
      * @var array
      */
-    private $eventCallbacks = ['$any' => []];
+    private $eventCallbacks = [];
 
     /**
-     * @var string
+     * @var array
      */
-    private $name;
+    private $anyEventCallbacks = [];
 
     /**
-     * @var GuzzleClient
+     * @var EventStreamIteratorInterface
      */
-    private $client;
+    private $streamIterator;
 
     /**
-     * @param string $streamName
-     * @param string $baseUri
+     * @param EventStreamIteratorInterface $streamIterator
      */
-    public function __construct($streamName, $baseUri)
+    public function __construct(EventStreamIteratorInterface $streamIterator)
     {
-        $this->name = $streamName;
-        $this->client = new GuzzleClient(['base_uri' => $baseUri]);
+        $this->streamIterator = $streamIterator;
     }
 
     /**
-     * @return string
+     * @return EventStreamIteratorInterface
      */
-    public function getName()
+    public function getStreamIterator()
     {
-        return $this->name;
-    }
-
-    /**
-     * @param int $offset
-     * @return void
-     */
-    public function listen($offset = 0)
-    {
-        $last = null;
-        if ($offset > 0) {
-            $last = sprintf('/streams/%s/%d/forward/20', $this->name, $offset + 1);
-        }
-        while ($last === null) {
-            $last = $this->getLast(sprintf('/streams/%s', $this->name));
-            if ($last === null) {
-                sleep(2);
-            }
-        }
-        do {
-            $current = $this->readPrevious($last);
-            if ($last === $current) {
-                echo '---' . PHP_EOL;
-                sleep(2);
-            }
-            $last = $current;
-        } while (true);
+        return $this->streamIterator;
     }
 
     /**
@@ -74,106 +45,39 @@ class EventStream
      */
     public function onAny(\Closure $onEventCallback)
     {
-        $this->eventCallbacks['$any'][] = $onEventCallback;
+        $this->anyEventCallbacks[] = $onEventCallback;
     }
 
     /**
-     * @param string $eventName
+     * @param string $eventType
      * @param \Closure $onEventCallback
      * @return void
      */
-    public function on($eventName, \Closure $onEventCallback)
+    public function on($eventType, \Closure $onEventCallback)
     {
-        if (!isset($this->eventCallbacks[$eventName])) {
-            $this->eventCallbacks[$eventName] = [];
+        if (!isset($this->eventCallbacks[$eventType])) {
+            $this->eventCallbacks[$eventType] = [];
         }
-        $this->eventCallbacks[$eventName][] = $onEventCallback;
+        $this->eventCallbacks[$eventType][] = $onEventCallback;
     }
 
     /**
-     * @param string $head
      * @return string
      */
-    private function getLast($head)
+    public function replay()
     {
-        $atom = json_decode($this->fetch($head), true);
-        $last = $this->getNamedLink($atom, 'last');
-        if ($last !== null) {
-            return $last;
-        }
-        return $this->getNamedLink($atom, 'self');
-    }
-
-    /**
-     * @param array $entry
-     * @return void
-     */
-    private function processEntry(array $entry)
-    {
-        $event = new Event($entry['eventType'], $entry['eventNumber'], json_decode($entry['data'], true), json_decode($entry['metaData'], true));
-        foreach ($this->eventCallbacks['$any'] as $callback) {
-            call_user_func($callback, $event);
-        }
-        if (isset($this->eventCallbacks[$event->getType()])) {
-            foreach ($this->eventCallbacks[$event->getType()] as $callback) {
-                call_user_func($callback, $event);
+        /** @var Event $event */
+        foreach ($this->streamIterator as $event) {
+            foreach ($this->anyEventCallbacks as $callback) {
+                call_user_func($callback, $event, $this->streamIterator->key());
             }
-        }
-    }
-
-    /**
-     * @param string $url
-     * @return string
-     */
-    private function readPrevious($url)
-    {
-        $atom = json_decode($this->fetch($url . '?embed=body'), true);
-        foreach (array_reverse($atom['entries']) as $entry) {
-            $this->processEntry($entry);
-        }
-        $previous = $this->getNamedLink($atom, 'previous');
-        if ($previous !== null) {
-            return $previous;
-        }
-        return $url;
-    }
-
-    /**
-     * @param string $url
-     * @return string
-     */
-    private function fetch($url)
-    {
-        try {
-            $response = $this->client->request('get', $url, [
-                'headers' => [
-                    'Accept' => 'application/vnd.eventstore.atom+json',
-//                    'ES-LongPoll' => 15
-                ]
-//                'auth' => ['admin', 'changeit'],
-//                'headers' => [
-//                ],
-            ]);
-        } catch (\Exception $exception) {
-            echo 'EXCEPTION: for url "' . $url . '": ' . $exception->getMessage();
-            exit;
-        }
-        return (string)$response->getBody();
-    }
-
-    /**
-     * @param array $document
-     * @param string $name
-     * @return string
-     */
-    private function getNamedLink($document, $name)
-    {
-        foreach ($document['links'] as $link) {
-            if ($link['relation'] !== $name) {
+            if (!isset($this->eventCallbacks[$event->getType()])) {
                 continue;
             }
-            return $link['uri'];
+            foreach ($this->eventCallbacks[$event->getType()] as $callback) {
+                call_user_func($callback, $event, $this->streamIterator->key());
+            }
         }
-        return null;
     }
+
 }

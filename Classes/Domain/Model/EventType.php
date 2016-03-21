@@ -73,6 +73,15 @@ class EventType
     }
 
     /**
+     * HACK HACK HACK
+     * @param array $schema
+     * @return void
+     */
+    public function updateSchema(array $schema = null) {
+        $this->schema = $schema;
+    }
+
+    /**
      * @return bool
      */
     public function hasSchema()

@@ -3,17 +3,12 @@ namespace Wwwision\Eventr\Domain\Dto;
 
 use TYPO3\Flow\Annotations as Flow;
 
-final class Event implements EventInterface
+final class WritableEvent implements EventInterface
 {
     /**
      * @var string
      */
     private $type;
-
-    /**
-     * @var integer
-     */
-    private $version;
 
     /**
      * @var array
@@ -27,14 +22,12 @@ final class Event implements EventInterface
 
     /**
      * @param string $type
-     * @param integer $version
      * @param array $data
      * @param array $metadata
      */
-    public function __construct($type, $version, array $data, array $metadata = null)
+    public function __construct($type, array $data, array $metadata = null)
     {
         $this->type = $type;
-        $this->version = (integer)$version;
         $this->data = $data;
         $this->metadata = $metadata;
     }
@@ -45,14 +38,6 @@ final class Event implements EventInterface
     public function getType()
     {
         return $this->type;
-    }
-
-    /**
-     * @return integer
-     */
-    public function getVersion()
-    {
-        return $this->version;
     }
 
     /**
@@ -85,5 +70,18 @@ final class Event implements EventInterface
     public function getMetadata()
     {
         return $this->metadata;
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    public function addMetadata($key, $value)
+    {
+        if (!$this->hasMetadata()) {
+            $this->metadata = [];
+        }
+        $this->metadata[$key] = $value;
     }
 }

@@ -1,13 +1,14 @@
 <?php
 namespace Wwwision\Eventr\Command;
 
-use EventStore\ExpectedVersion;
 use TYPO3\Eel\CompilingEvaluator;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Cli\CommandController;
-use Wwwision\Eventr\Domain\Dto\AggregateId;
+use TYPO3\Flow\Object\ObjectManagerInterface;
+use TYPO3\Flow\Utility\Algorithms;
 use Wwwision\Eventr\Domain\Model\Projection;
 use Wwwision\Eventr\Eventr;
+use Wwwision\Eventr\ExpectedVersion;
 
 /**
  * @Flow\Scope("singleton")
@@ -26,6 +27,13 @@ class EventrCommandController extends CommandController
      * @var Eventr
      */
     protected $eventr;
+
+
+    /**
+     * @Flow\Inject
+     * @var ObjectManagerInterface
+     */
+    protected $objectManager;
 
     /**
      * @param string $aggregateType
@@ -64,18 +72,23 @@ class EventrCommandController extends CommandController
      * @param string $eventType
      * @param string $id
      * @param string $payload as JSON string
-     * @param int $expectVersion
+     * @param string $expectVersion the expected version as number or "any" or "no-stream"
      * @return void
      */
-    public function emitEventCommand($aggregateType, $eventType, $id = null, $payload = null, $expectVersion = ExpectedVersion::ANY)
+    public function emitEventCommand($aggregateType, $eventType, $id = null, $payload = null, $expectVersion = 'any')
     {
         if ($id === null) {
-            $id = AggregateId::create();
-        } else {
-            $id = new AggregateId($id);
+            $id = Algorithms::generateUUID();
         }
         $aggregate = $this->eventr->getAggregate($aggregateType, $id);
 
+        if ($expectVersion === 'any') {
+            $expectVersion = ExpectedVersion::ANY;
+        } elseif ($expectVersion === 'no-stream') {
+            $expectVersion = ExpectedVersion::NO_STREAM;
+        } else {
+            $expectVersion = (integer)$expectVersion;
+        }
         $payload = $payload === null ? [] : json_decode($payload, true);
         $aggregate->emitEvent($eventType, $payload, $expectVersion);
         $this->outputLine('Event "%s" emitted for aggregate "%s" with id "%s"', [$eventType, $aggregateType, $id]);
@@ -107,13 +120,100 @@ class EventrCommandController extends CommandController
     }
 
     /**
-     * @param string $name
      * @return void
      */
-    public function runProjectionCommand($name)
+    public function listAggregateTypesCommand()
     {
-        $projection = $this->eventr->getProjection($name);
-        $this->outputLine('Running projection "%s"...', [$projection->getName()]);
-        $projection->listen();
+        $rows = [];
+        foreach ($this->eventr->getAggregateTypes() as $aggregateType) {
+            $rows[] = [$aggregateType->getName(), count($aggregateType->getEventTypes())];
+        }
+        $this->output->outputTable($rows, ['Aggregate Type', '# Event Types']);
+    }
+
+    /**
+     * @param string $aggregateType
+     * @return void
+     */
+    public function showAggregateTypeCommand($aggregateType)
+    {
+        $aggregateType = $this->eventr->getAggregateType($aggregateType);
+        $this->outputLine('<b>%s</b>', [$aggregateType->getName()]);
+        $this->outputLine('EventTypes:');
+        $rows = [];
+        foreach ($aggregateType->getEventTypes() as $eventType) {
+            $rows[] = [$eventType->getName(), $eventType->hasSchema() ? '✔' : '-'];
+        }
+        $this->output->outputTable($rows, ['EventType', 'Schema?']);
+    }
+
+    /**
+     * @param string $aggregateType
+     * @param string $eventType
+     * @return void
+     */
+    public function showEventTypeCommand($aggregateType, $eventType)
+    {
+        $aggregateType = $this->eventr->getAggregateType($aggregateType);
+        $eventType = $aggregateType->getEventType($eventType);
+        $this->outputLine('Schema of event <b>%s.%s</b>', [$aggregateType->getName(), $eventType->getName()]);
+        if ($eventType->hasSchema()) {
+            $this->outputLine('Schema:');
+            $this->outputLine('<i>%s</i>', [json_encode($eventType->getSchema(), JSON_PRETTY_PRINT)]);
+        } else {
+            $this->outputLine('(EventType has no schema)');
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function listProjectionsCommand()
+    {
+        $rows = [];
+        foreach ($this->eventr->getProjections() as $projection) {
+            $rows[] = [$projection->getName(), $projection->getAggregateType()->getName()];
+        }
+        $this->output->outputTable($rows, ['Projection', 'AggregateType']);
+    }
+
+    /**
+     * @param string $projection
+     * @return void
+     */
+    public function showProjectionCommand($projection)
+    {
+        $projection = $this->eventr->getProjection($projection);
+        $this->outputLine('<b>%s</b>', [$projection->getName()]);
+        $this->outputLine('AggregateType: <b>%s</b>', [$projection->getAggregateType()->getName()]);
+        $this->outputLine('Adapter Configuration:');
+        $this->outputLine('<i>%s</i>', [json_encode($projection->getAdapterConfiguration(), JSON_PRETTY_PRINT)]);
+        $this->outputLine('Mapping:');
+        $this->outputLine('<i>%s</i>', [json_encode($projection->getMapping(), JSON_PRETTY_PRINT)]);
+    }
+
+    /**
+     * @param string $projection
+     * @param int $offset
+     * @return void
+     */
+    public function projectionReplayCommand($projection, $offset = 0)
+    {
+        $projection = $this->eventr->getProjection($projection);
+        $this->outputLine('Replaying projection "%s" from version %d', [$projection->getName(), $offset]);
+        $projection->replay($offset);
+        $this->outputLine('Done.');
+    }
+
+    /**
+     * @param string $projection
+     * @return void
+     */
+    public function projectionCatchupCommand($projection)
+    {
+        $projection = $this->eventr->getProjection($projection);
+        $this->outputLine('Catching up projection "%s" from version %d', [$projection->getName(), $projection->getVersion()]);
+        $projection->replay();
+        $this->outputLine('Done.');
     }
 }

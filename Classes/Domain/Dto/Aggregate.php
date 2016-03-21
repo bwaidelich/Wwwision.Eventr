@@ -2,11 +2,11 @@
 namespace Wwwision\Eventr\Domain\Dto;
 
 use Doctrine\ORM\Mapping as ORM;
-use EventStore\EventStore;
-use EventStore\ExpectedVersion;
-use EventStore\WritableEvent;
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Utility\Now;
 use Wwwision\Eventr\Domain\Model\AggregateType;
+use Wwwision\Eventr\EventStore;
+use Wwwision\Eventr\ExpectedVersion;
 
 class Aggregate
 {
@@ -16,48 +16,78 @@ class Aggregate
     private $type;
 
     /**
-     * @var AggregateId
+     * @var string
      */
     private $id;
 
     /**
+     * @Flow\Inject
      * @var EventStore
      */
-    private $eventStore;
+    protected $eventStore;
+
+    /**
+     * @Flow\Inject(lazy=false)
+     * @var Now
+     */
+    protected $now;
 
     /**
      * @param AggregateType $type
-     * @param AggregateId $id
+     * @param string $id
      */
-    public function __construct(AggregateType $type, AggregateId $id)
+    public function __construct(AggregateType $type, $id)
     {
         $this->type = $type;
         $this->id = $id;
     }
 
     /**
-     * @param EventStore $eventStore
-     * @return void
+     * @return AggregateType
      */
-    public function injectEventStore(EventStore $eventStore)
+    public function getType()
     {
-        $this->eventStore = $eventStore;
+        return $this->type;
     }
 
     /**
-     * @param string $eventName
-     * @param array $payload
-     * @param int $expectVersion
+     * @return string
      */
-    public function emitEvent($eventName, array $payload = [], $expectVersion = ExpectedVersion::ANY)
+    public function getId()
     {
-        $eventType = $this->type->getEventType($eventName);
-        $eventType->validatePayload($payload);
+        return $this->id;
+    }
 
-        $payload['id'] = (string)$this->id;
-        $streamName = sprintf('%s-%s', $this->type->getName(), $this->id);
-        $event = WritableEvent::newInstance($eventName, $payload);
-        $this->eventStore->writeToStream($streamName, $event, $expectVersion);
+    /**
+     * @param string $type
+     * @param array $data
+     * @param int $expectVersion
+     * @param \DateTimeInterface $date The date this event has occurred. If null the current date will be used
+     * @return void
+     */
+    public function emitEvent($type, array $data = [], $expectVersion = ExpectedVersion::ANY, \DateTimeInterface $date = null)
+    {
+        if ($date === null) {
+            $date = $this->now;
+        }
+        $metadata = [
+            'id' => $this->id,
+            'date' => $date->format(DATE_ISO8601),
+        ];
+        $this->emit(new WritableEvent($type, $data, $metadata), $expectVersion);
+    }
+
+    /**
+     * @param WritableEvent $event
+     * @param int $expectVersion
+     * @return void
+     */
+    public function emit(WritableEvent $event, $expectVersion = ExpectedVersion::ANY)
+    {
+        $eventType = $this->type->getEventType($event->getType());
+        $eventType->validatePayload($event->getData());
+
+        $this->eventStore->writeToAggregateStream($this, $event, $expectVersion);
     }
 
 }

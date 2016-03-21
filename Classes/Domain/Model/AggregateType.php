@@ -2,14 +2,26 @@
 namespace Wwwision\Eventr\Domain\Model;
 
 use Doctrine\Common\Collections\ArrayCollection;
-use TYPO3\Flow\Annotations as Flow;
 use Doctrine\ORM\Mapping as ORM;
+use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Persistence\PersistenceManagerInterface;
+use Wwwision\Eventr\EventStore;
+use Wwwision\Eventr\EventStream;
 
 /**
  * @Flow\Entity
  */
 class AggregateType
 {
+
+    /**
+     * HACK
+     '
+     * @Flow\Inject
+     * @var PersistenceManagerInterface
+     */
+    protected $persistenceManager;
+
     /**
      * @ORM\Id
      * @var string
@@ -21,6 +33,12 @@ class AggregateType
      * @var ArrayCollection<EventType>
      */
     protected $eventTypes;
+
+    /**
+     * @Flow\Inject
+     * @var EventStore
+     */
+    protected $eventStore;
 
     /**
      * @param string $name
@@ -53,6 +71,35 @@ class AggregateType
         $this->eventTypes->add($eventType);
     }
 
+    /**
+     * @param string $eventName
+     * @param array $eventSchema
+     * @return void
+     */
+    public function updateEventType($eventName, array $eventSchema = null)
+    {
+        if (!$this->hasEventType($eventName)) {
+            throw new \InvalidArgumentException(sprintf('EventType "%s" is not registered for AggregateType "%s"', $eventName, $this->name), 1457006624);
+        }
+        // HACK
+        $eventType = $this->getEventType($eventName);
+        $eventType->updateSchema($eventSchema);
+        $this->persistenceManager->update($eventType);
+    }
+
+    /**
+     * @param string $eventName
+     * @return void
+     */
+    public function removeEventType($eventName)
+    {
+        if (!$this->hasEventType($eventName)) {
+            throw new \InvalidArgumentException(sprintf('EventType "%s" is not registered for AggregateType "%s"', $eventName, $this->name), 1457005725);
+        }
+        // HACK
+        $this->eventTypes->removeElement($this->getEventType($eventName));
+    }
+
     public function hasEventType($eventName)
     {
         /** @noinspection PhpUnusedParameterInspection */
@@ -72,6 +119,30 @@ class AggregateType
             }
         }
         throw new \InvalidArgumentException(sprintf('EventType "%s" is not registered for AggregateType "%s"', $eventName, $this->name), 1456499945);
+    }
+
+    /**
+     * @return EventType[]
+     */
+    public function getEventTypes()
+    {
+        return $this->eventTypes->toArray();
+    }
+
+    /**
+     * @param int $offset
+     * @return EventStream
+     */
+    public function getEventStream($offset = 0)
+    {
+        return $this->eventStore->getEventStreamFor($this, $offset);
+    }
+
+    /**
+     * @return string
+     */
+    function __toString() {
+        return $this->name;
     }
 
 }

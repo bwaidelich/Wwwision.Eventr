@@ -1,5 +1,8 @@
 'EventStore\EventStore':
-  factoryObjectName: 'Wwwision\Eventr\EventStoreFactory'
+  factoryObjectName: 'Wwwision\Eventr\Adapters\EventStore\EventStoreFactory'
   arguments:
     1:
       value: 'http://127.0.0.1:2113'
+'Wwwision\Eventr\EventStoreAdapterInterface':
+#  className: 'Wwwision\Eventr\Adapters\EventStore\EventStoreAdapter'
+  className: 'Wwwision\Eventr\Adapters\Doctrine\DoctrineEventStoreAdapter'

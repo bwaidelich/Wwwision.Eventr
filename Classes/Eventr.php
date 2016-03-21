@@ -3,7 +3,6 @@ namespace Wwwision\Eventr;
 
 use TYPO3\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
-use Wwwision\Eventr\Domain\Dto\AggregateId;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 use Wwwision\Eventr\Domain\Model\Projection;
 use Wwwision\Eventr\Domain\Repository\AggregateTypeRepository;
@@ -52,14 +51,15 @@ class Eventr
 
     /**
      * @param string $aggregateName
-     * @param AggregateId $id
+     * @param string $id
      * @return Aggregate
      */
-    public function getAggregate($aggregateName, AggregateId $id)
+    public function getAggregate($aggregateName, $id)
     {
         $aggregateType = $this->getAggregateType($aggregateName);
         return new Aggregate($aggregateType, $id);
     }
+
     /**
      * @param string $aggregateTypeName
      * @return AggregateType
@@ -70,19 +70,53 @@ class Eventr
         if ($aggregateType === null) {
             throw new \InvalidArgumentException(sprintf('AggregateType "%s" is not registered!', $aggregateTypeName), 1456502064);
         }
+        // HACK to persist registered events
+        $this->aggregateTypeRepository->update($aggregateType);
         return $aggregateType;
     }
 
     /**
-     * @param Projection $projection
+     * @return AggregateType[]
+     */
+    public function getAggregateTypes()
+    {
+        return $this->aggregateTypeRepository->findAll()->toArray();
+    }
+
+    /**
+     * @param string $projectionName
+     * @param AggregateType $aggregateType
+     * @param array $mapping
+     * @param array $adapterConfiguration
      * @return void
      */
-    public function registerProjection(Projection $projection)
+    public function registerProjection($projectionName, AggregateType $aggregateType, array $mapping, array $adapterConfiguration)
     {
-        if ($this->projectionRepository->findByIdentifier($projection->getName()) !== null) {
-            throw new \InvalidArgumentException(sprintf('Projection "%s" is already registered!', $projection->getName()), 1456740995);
+        if ($this->projectionRepository->findByIdentifier($projectionName) !== null) {
+            throw new \InvalidArgumentException(sprintf('Projection "%s" is already registered!', $projectionName), 1456740995);
         }
+        $projection = new Projection($projectionName, $aggregateType, $mapping, $adapterConfiguration);
         $this->projectionRepository->add($projection);
+    }
+
+    /**
+     * @param string $projectionName
+     * @param array $newMapping
+     * @param array $newAdapterConfiguration
+     * @return void
+     */
+    public function updateProjection($projectionName, array $newMapping, array $newAdapterConfiguration = null)
+    {
+        /** @var Projection $projection */
+        $projection = $this->projectionRepository->findByIdentifier($projectionName);
+        if ($projection === null) {
+            throw new \InvalidArgumentException(sprintf('Projection "%s" is not registered!', $projection->getName()), 1457372107);
+        }
+        $projection->updateMapping($newMapping);
+        if ($newAdapterConfiguration !== null) {
+            $projection->updateAdapterConfiguration($newAdapterConfiguration);
+        }
+        $this->projectionRepository->update($projection);
     }
 
     /**
@@ -91,6 +125,19 @@ class Eventr
      */
     public function getProjection($projectionName)
     {
-        return $this->projectionRepository->findByIdentifier($projectionName);
+        $projection = $this->projectionRepository->findByIdentifier($projectionName);
+        if ($projection === null) {
+            throw new \InvalidArgumentException(sprintf('Projection "%s" is not registered!', $projectionName), 1457019162);
+        }
+        $this->projectionRepository->update($projection);
+        return $projection;
+    }
+
+    /**
+     * @return Projection[]
+     */
+    public function getProjections()
+    {
+        return $this->projectionRepository->findAll()->toArray();
     }
 }
