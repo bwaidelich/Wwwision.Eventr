@@ -133,9 +133,6 @@ class DoctrineProjectionAdapter implements ProjectionAdapterInterface
             return null;
         }
         return ObjectAccess::getGettableProperties($entity);
-
-        #$result = $this->connection->fetchAssoc(sprintf('SELECT * FROM %s WHERE %s = ? LIMIT 1', $this->tableName, $this->idColumn), [$aggregateId]);
-        #return $result === false ? null : $result;
     }
 
     /**
@@ -144,6 +141,5 @@ class DoctrineProjectionAdapter implements ProjectionAdapterInterface
     public function findAll()
     {
         return $this->repository->findAll();
-        #return $this->connection->fetchAll(sprintf('SELECT * FROM %s', $this->tableName));
     }
 }

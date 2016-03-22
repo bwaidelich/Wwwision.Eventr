@@ -10,13 +10,14 @@ use Wwwision\Eventr\EventStream;
 
 /**
  * @Flow\Entity
+ * @ORM\Table(name="eventr_aggregate_types")
  */
 class AggregateType
 {
 
     /**
      * HACK
-     '
+     *
      * @Flow\Inject
      * @var PersistenceManagerInterface
      */

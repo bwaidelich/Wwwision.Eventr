@@ -44,7 +44,7 @@ class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
     {
         $this->connection->beginTransaction();
 
-        $actualVersion = $this->connection->fetchColumn('SELECT MAX(version) FROM events WHERE stream = ?', [$streamName]);
+        $actualVersion = $this->connection->fetchColumn('SELECT MAX(version) FROM eventr_events WHERE stream = ?', [$streamName]);
         $newVersion = $actualVersion === NULL ? 0 : $actualVersion + 1;
         $this->verifyExpectedVersion($actualVersion, $expectedVersion);
 
@@ -85,7 +85,7 @@ class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
      */
     public function getEventStreamFor(AggregateType $aggregateType, $offset = 0)
     {
-        $query = 'SELECT * FROM events WHERE stream LIKE :stream';
+        $query = 'SELECT * FROM eventr_events WHERE stream LIKE :stream';
         if ($offset > 0) {
             $query .= ' AND id >= :version';
         }

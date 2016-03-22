@@ -8,6 +8,7 @@ use TYPO3\Flow\Utility\SchemaValidator;
 
 /**
  * @Flow\Entity
+ * @ORM\Table(name="eventr_event_types")
  */
 class EventType
 {

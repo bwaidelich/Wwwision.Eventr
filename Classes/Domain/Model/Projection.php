@@ -11,6 +11,7 @@ use Wwwision\Eventr\ProjectionAdapterInterface;
 
 /**
  * @Flow\Entity
+ * @ORM\Table(name="eventr_projections")
  */
 class Projection
 {
