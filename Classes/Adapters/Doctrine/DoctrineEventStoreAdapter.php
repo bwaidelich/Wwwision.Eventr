@@ -56,7 +56,7 @@ class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
             'data' => $event->hasData() ? json_encode($event->getData()) : null,
             'metadata' => $event->hasMetadata() ? json_encode($event->getMetadata()) : null,
         ];
-        $this->connection->insert('events', $eventData);
+        $this->connection->insert('eventr_events', $eventData);
         $this->connection->commit();
     }
 
