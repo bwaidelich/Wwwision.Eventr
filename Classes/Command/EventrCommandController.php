@@ -6,7 +6,6 @@ use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Cli\CommandController;
 use TYPO3\Flow\Object\ObjectManagerInterface;
 use TYPO3\Flow\Utility\Algorithms;
-use Wwwision\Eventr\Domain\Model\Projection;
 use Wwwision\Eventr\Eventr;
 use Wwwision\Eventr\ExpectedVersion;
 
@@ -114,8 +113,7 @@ class EventrCommandController extends CommandController
             $this->outputLine('<error>The adapter is no valid JSON string</error>');
             $this->quit(1);
         }
-        $projection = new Projection($name, $aggregateType, $mapping, $adapterConfiguration);
-        $this->eventr->registerProjection($projection);
+        $this->eventr->registerProjection($name, $aggregateType, $mapping, $adapterConfiguration);
         $this->outputLine('Projection "%s" registered!', [$name]);
     }
 

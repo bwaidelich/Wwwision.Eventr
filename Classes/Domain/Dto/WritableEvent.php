@@ -65,6 +65,15 @@ final class WritableEvent implements EventInterface
     }
 
     /**
+     * @param string $key
+     * @return bool
+     */
+    public function hasMetadataKey($key)
+    {
+        return $this->hasMetadata() && isset($this->metadata[$key]);
+    }
+
+    /**
      * @return array
      */
     public function getMetadata()

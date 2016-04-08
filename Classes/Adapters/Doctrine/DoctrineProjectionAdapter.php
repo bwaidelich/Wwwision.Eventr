@@ -1,14 +1,15 @@
 <?php
 namespace Wwwision\Eventr\Adapters\Doctrine;
 
-use Doctrine\Common\Persistence\ObjectManager as EntityManager;
+use Doctrine\Common\Persistence\ObjectManager as DoctrineObjectManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
+use Doctrine\ORM\EntityManager as DoctrineEntityManager;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Persistence\RepositoryInterface;
 use TYPO3\Flow\Reflection\ObjectAccess;
 use TYPO3\Flow\Reflection\ReflectionService;
-use Wwwision\Eventr\Domain\Dto\EventInterface;
+use Wwwision\Eventr\Domain\Dto\Event;
 use Wwwision\Eventr\ProjectionAdapterInterface;
 
 class DoctrineProjectionAdapter implements ProjectionAdapterInterface
@@ -35,9 +36,9 @@ class DoctrineProjectionAdapter implements ProjectionAdapterInterface
 
     /**
      * @Flow\Inject
-     * @var EntityManager
+     * @var DoctrineEntityManager;
      */
-    protected $entityManager;
+    protected $doctrineEntityManager;
 
     /**
      * @Flow\Inject
@@ -54,9 +55,18 @@ class DoctrineProjectionAdapter implements ProjectionAdapterInterface
         $this->options = $options;
     }
 
+    /**
+     * @param DoctrineObjectManager $doctrineEntityManager
+     * @return void
+     */
+    public function injectDoctrineEntityManager(DoctrineObjectManager $doctrineEntityManager)
+    {
+        $this->doctrineEntityManager = $doctrineEntityManager;
+    }
+
     public function initializeObject()
     {
-        $this->connection = $this->entityManager->getConnection();
+        $this->connection = $this->doctrineEntityManager->getConnection();
         $this->readModelClassName = $this->options['readModelClassName'];
         $repositoryClassName = $this->reflectionService->getClassSchema($this->readModelClassName)->getRepositoryClassName();
         $this->repository = new $repositoryClassName();
@@ -65,9 +75,9 @@ class DoctrineProjectionAdapter implements ProjectionAdapterInterface
     /**
      * {@inheritDoc}
      */
-    public function project($aggregateId, $state, EventInterface $event)
+    public function project($aggregateId, $state, Event $event)
     {
-        $readModelMetadata = $this->entityManager->getClassMetadata($this->readModelClassName);
+        $readModelMetadata = $this->doctrineEntityManager->getClassMetadata($this->readModelClassName);
         $mapping = [];
         $this->connection->beginTransaction();
         foreach ($state as $key => $value) {
@@ -95,7 +105,7 @@ class DoctrineProjectionAdapter implements ProjectionAdapterInterface
             $mapping[$this->readModelClassName][$readModelMetadata->versionField] = $event->getVersion();
         }
         foreach ($mapping as $className => $columnValues) {
-            $classMetadata = $this->entityManager->getClassMetadata($className);
+            $classMetadata = $this->doctrineEntityManager->getClassMetadata($className);
             foreach ($classMetadata->getIdentifierFieldNames() as $idFieldName) {
                 if (isset($columnValues[$idFieldName])) {
                     continue;

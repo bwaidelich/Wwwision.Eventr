@@ -4,6 +4,7 @@ namespace Wwwision\Eventr\Domain\Model;
 use Doctrine\ORM\Mapping as ORM;
 use TYPO3\Eel\CompilingEvaluator as EelEvaluator;
 use TYPO3\Eel\Context as EelContext;
+use TYPO3\Eel\Context;
 use TYPO3\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Dto\Event;
 use Wwwision\Eventr\EventStore;
@@ -187,7 +188,13 @@ class Projection
     }
 
 
-    private function map($eelContext, $state, $expression)
+    /**
+     * @param Context $eelContext
+     * @param array $state
+     * @param string $expression
+     * @return array|mixed
+     */
+    private function map($eelContext, array $state, $expression)
     {
         if (is_array($expression)) {
             $subState = [];

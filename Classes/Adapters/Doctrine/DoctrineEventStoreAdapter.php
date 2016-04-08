@@ -1,8 +1,9 @@
 <?php
 namespace Wwwision\Eventr\Adapters\Doctrine;
 
-use Doctrine\Common\Persistence\ObjectManager as EntityManager;
+use Doctrine\Common\Persistence\ObjectManager as DoctrineObjectManager;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManager as DoctrineEntityManager;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Utility\Now;
 use Wwwision\Eventr\Domain\Dto\WritableEvent;
@@ -22,19 +23,18 @@ class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
 
     /**
      * @Flow\Inject
-     * @var EntityManager
-     */
-    protected $entityManager;
-
-    /**
-     * @Flow\Inject
      * @var Now
      */
     protected $now;
 
-    public function initializeObject()
+    /**
+     * @param DoctrineObjectManager $doctrineEntityManager
+     * @return void
+     */
+    public function injectDoctrineEntityManager(DoctrineObjectManager $doctrineEntityManager)
     {
-        $this->connection = $this->entityManager->getConnection();
+        /** @var DoctrineEntityManager $doctrineEntityManager */
+        $this->connection = $doctrineEntityManager->getConnection();
     }
 
     /**

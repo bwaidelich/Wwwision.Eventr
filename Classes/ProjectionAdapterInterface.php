@@ -2,7 +2,7 @@
 namespace Wwwision\Eventr;
 
 use TYPO3\Flow\Annotations as Flow;
-use Wwwision\Eventr\Domain\Dto\EventInterface;
+use Wwwision\Eventr\Domain\Dto\Event;
 
 interface ProjectionAdapterInterface
 {
@@ -12,10 +12,10 @@ interface ProjectionAdapterInterface
     /**
      * @param string $aggregateId
      * @param mixed $state
-     * @param EventInterface $event
+     * @param Event $event
      * @return void
      */
-    public function project($aggregateId, $state, EventInterface $event);
+    public function project($aggregateId, $state, Event $event);
 
     /**
      * @param string $aggregateId

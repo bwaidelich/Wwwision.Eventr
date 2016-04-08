@@ -3,8 +3,11 @@ namespace Wwwision\Eventr\Domain\Dto;
 
 use Doctrine\ORM\Mapping as ORM;
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Object\ObjectManagerInterface;
+use TYPO3\Flow\Reflection\ReflectionService;
 use TYPO3\Flow\Utility\Now;
 use Wwwision\Eventr\Domain\Model\AggregateType;
+use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 use Wwwision\Eventr\EventStore;
 use Wwwision\Eventr\ExpectedVersion;
 
@@ -25,6 +28,18 @@ class Aggregate
      * @var EventStore
      */
     protected $eventStore;
+
+    /**
+     * @Flow\Inject
+     * @var ReflectionService
+     */
+    protected $reflectionService;
+
+    /**
+     * @Flow\Inject
+     * @var ObjectManagerInterface
+     */
+    protected $objectManager;
 
     /**
      * @Flow\Inject(lazy=false)
@@ -62,32 +77,65 @@ class Aggregate
      * @param string $type
      * @param array $data
      * @param int $expectVersion
-     * @param \DateTimeInterface $date The date this event has occurred. If null the current date will be used
      * @return void
      */
-    public function emitEvent($type, array $data = [], $expectVersion = ExpectedVersion::ANY, \DateTimeInterface $date = null)
+    public function emitEvent($type, array $data = [], $expectVersion = ExpectedVersion::ANY)
     {
-        if ($date === null) {
-            $date = $this->now;
-        }
-        $metadata = [
-            'id' => $this->id,
-            'date' => $date->format(DATE_ISO8601),
-        ];
-        $this->emit(new WritableEvent($type, $data, $metadata), $expectVersion);
-    }
+        $event = new WritableEvent($type, $data);
+        $this->addDefaultEventMetadata($event);
 
-    /**
-     * @param WritableEvent $event
-     * @param int $expectVersion
-     * @return void
-     */
-    public function emit(WritableEvent $event, $expectVersion = ExpectedVersion::ANY)
-    {
+        // TODO introduce event bus!?
+        $this->emitBeforeEventPublished($this, $event);
+
         $eventType = $this->type->getEventType($event->getType());
         $eventType->validatePayload($event->getData());
 
         $this->eventStore->writeToAggregateStream($this, $event, $expectVersion);
+
+        // TODO eehk, refactor (event bus?)
+        foreach ($this->reflectionService->getAllImplementationClassNamesForInterface(EventHandlerInterface::class) as $eventHandlerClassName) {
+            /** @var EventHandlerInterface $eventHandler */
+            $eventHandler = $this->objectManager->get($eventHandlerClassName);
+            $eventHandler->handle($this, $event);
+        }
     }
+
+    /**
+     * @param string $type
+     * @param array $data
+     * @param array $metadata
+     * @return void
+     */
+    public function recordEvent($type, array $data = [], array $metadata = null)
+    {
+        $event = new WritableEvent($type, $data, $metadata);
+        $this->addDefaultEventMetadata($event);
+        $this->eventStore->writeToAggregateStream($this, $event);
+    }
+
+    /**
+     * @param WritableEvent $event
+     * @return void
+     */
+    private function addDefaultEventMetadata(WritableEvent $event)
+    {
+        if (!$event->hasMetadataKey('id')) {
+            $event->addMetadata('id', $this->id);
+        }
+        if (!$event->hasMetadataKey('date')) {
+            $event->addMetadata('date', $this->now->format(DATE_ISO8601));
+        }
+    }
+
+    /**
+     * @param Aggregate $aggregate
+     * @param WritableEvent $event
+     * @return void
+     * @Flow\Signal
+     */
+    protected function emitBeforeEventPublished(Aggregate $aggregate, WritableEvent &$event)
+    {
+    }
+
 
 }
