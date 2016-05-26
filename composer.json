@@ -2,6 +2,7 @@
     "name": "wwwision/eventr",
     "type": "typo3-flow-package",
     "description": "WIP",
+    "license": "MIT",
     "require": {
         "typo3/flow": "~3.0"
     },
