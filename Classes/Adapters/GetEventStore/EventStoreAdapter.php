@@ -2,6 +2,7 @@
 namespace Wwwision\Eventr\Adapters\GetEventStore;
 
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Exception as FlowException;
 use TYPO3\Flow\Http\Client\RequestEngineInterface;
 use TYPO3\Flow\Http\Request;
 use TYPO3\Flow\Http\Uri;
@@ -56,8 +57,9 @@ class EventStoreAdapter implements EventStoreAdapterInterface
         $response = $this->httpClient->sendRequest($request);
         if ($response->getStatusCode() === 400) {
             throw new WrongExpectedVersionException(sprintf('Expected version: %d', $expectedVersion), 1464088109);
+        } elseif ($response->getStatusCode() !== 201) {
+            throw new FlowException(sprintf('Unexpected response status code: %d', $response->getStatusCode()), 1464263698);
         }
-        // TODO error handling
 
         $lookupRequest = Request::create(new Uri($response->getHeader('Location')), 'GET');
         $lookupRequest->setHeader('Accept', 'application/vnd.eventstore.atom+json');
