@@ -1,8 +1,10 @@
-'EventStore\EventStore':
-  factoryObjectName: 'Wwwision\Eventr\Adapters\EventStore\EventStoreFactory'
-  arguments:
-    1:
-      value: 'http://127.0.0.1:2113'
+'TYPO3\Flow\Http\Client\RequestEngineInterface':
+  scope: 'singleton'
+  className: 'TYPO3\Flow\Http\Client\CurlEngine'
+
 'Wwwision\Eventr\EventStoreAdapterInterface':
-#  className: 'Wwwision\Eventr\Adapters\EventStore\EventStoreAdapter'
-  className: 'Wwwision\Eventr\Adapters\Doctrine\DoctrineEventStoreAdapter'
+  className: 'Wwwision\Eventr\Adapters\Doctrine\EventStoreAdapter'
+#  className: 'Wwwision\Eventr\Adapters\GetEventStore\EventStoreAdapter'
+#  arguments:
+#    1:
+#      value: 'http://127.0.0.1:2113'

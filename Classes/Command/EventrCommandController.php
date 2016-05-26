@@ -5,7 +5,9 @@ use TYPO3\Eel\CompilingEvaluator;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Cli\CommandController;
 use TYPO3\Flow\Object\ObjectManagerInterface;
+use TYPO3\Flow\Persistence\PersistenceManagerInterface;
 use TYPO3\Flow\Utility\Algorithms;
+use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
 use Wwwision\Eventr\Eventr;
 use Wwwision\Eventr\ExpectedVersion;
 
@@ -27,12 +29,17 @@ class EventrCommandController extends CommandController
      */
     protected $eventr;
 
-
     /**
      * @Flow\Inject
      * @var ObjectManagerInterface
      */
     protected $objectManager;
+
+    /**
+     * @Flow\Inject
+     * @var PersistenceManagerInterface
+     */
+    protected $persistenceManager;
 
     /**
      * @param string $aggregateType
@@ -96,24 +103,25 @@ class EventrCommandController extends CommandController
     /**
      * @param string $name
      * @param string $aggregateType
-     * @param string $mapping as JSON string
-     * @param string $adapter as JSON string
+     * @param string $handlerClassName
+     * @param string $handlerOptions as JSON string
+     * @param boolean $synchronous
      * @return void
      */
-    public function registerProjectionCommand($name, $aggregateType, $mapping, $adapter)
+    public function registerProjectionCommand($name, $aggregateType, $handlerClassName, $handlerOptions = null, $synchronous = false)
     {
         $aggregateType = $this->eventr->getAggregateType($aggregateType);
-        $mapping = json_decode($mapping, true);
-        if ($mapping === null) {
-            $this->outputLine('<error>The mapping is no valid JSON string</error>');
-            $this->quit(1);
+        $configuration = new ProjectionConfiguration($aggregateType, $handlerClassName);
+        if ($handlerOptions !== null) {
+            $handlerOptions = json_decode($handlerOptions, true);
+            if ($handlerOptions === null) {
+                $this->outputLine('<error>The handlerOptions argument is no valid JSON string</error>');
+                $this->quit(1);
+            }
+            $configuration->handlerOptions = $handlerOptions;
         }
-        $adapterConfiguration = json_decode($adapter, true);
-        if ($adapterConfiguration === null) {
-            $this->outputLine('<error>The adapter is no valid JSON string</error>');
-            $this->quit(1);
-        }
-        $this->eventr->registerProjection($name, $aggregateType, $mapping, $adapterConfiguration);
+        $configuration->synchronous = $synchronous;
+        $this->eventr->registerProjection($name, $configuration);
         $this->outputLine('Projection "%s" registered!', [$name]);
     }
 
@@ -185,21 +193,21 @@ class EventrCommandController extends CommandController
         $this->outputLine('<b>%s</b>', [$projection->getName()]);
         $this->outputLine('AggregateType: <b>%s</b>', [$projection->getAggregateType()->getName()]);
         $this->outputLine('Adapter Configuration:');
-        $this->outputLine('<i>%s</i>', [json_encode($projection->getAdapterConfiguration(), JSON_PRETTY_PRINT)]);
+        $this->outputLine('<i>%s</i>', [json_encode($projection->getHandlerConfiguration(), JSON_PRETTY_PRINT)]);
         $this->outputLine('Mapping:');
         $this->outputLine('<i>%s</i>', [json_encode($projection->getMapping(), JSON_PRETTY_PRINT)]);
     }
 
     /**
      * @param string $projection
-     * @param int $offset
      * @return void
      */
-    public function projectionReplayCommand($projection, $offset = 0)
+    public function projectionReplayCommand($projection)
     {
         $projection = $this->eventr->getProjection($projection);
-        $this->outputLine('Replaying projection "%s" from version %d', [$projection->getName(), $offset]);
-        $projection->replay($offset);
+        $this->outputLine('Replaying projection "%s"', [$projection->getName()]);
+        $projection->replay();
+        $this->persistenceManager->persistAll();
         $this->outputLine('Done.');
     }
 
@@ -211,7 +219,7 @@ class EventrCommandController extends CommandController
     {
         $projection = $this->eventr->getProjection($projection);
         $this->outputLine('Catching up projection "%s" from version %d', [$projection->getName(), $projection->getVersion()]);
-        $projection->replay();
+        $projection->catchup();
         $this->outputLine('Done.');
     }
 }

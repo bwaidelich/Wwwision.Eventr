@@ -5,6 +5,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Persistence\PersistenceManagerInterface;
+use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\EventStore;
 use Wwwision\Eventr\EventStream;
 
@@ -61,7 +62,7 @@ class AggregateType
     /**
      * @param string $eventName
      * @param array $eventSchema
-     * @return void
+     * @return EventType
      */
     public function registerEventType($eventName, array $eventSchema = null)
     {
@@ -70,6 +71,7 @@ class AggregateType
         }
         $eventType = new EventType($this, $eventName, $eventSchema);
         $this->eventTypes->add($eventType);
+        return $eventType;
     }
 
     /**
@@ -137,6 +139,15 @@ class AggregateType
     public function getEventStream($offset = 0)
     {
         return $this->eventStore->getEventStreamFor($this, $offset);
+    }
+
+    /**
+     * @param string $id
+     * @return Aggregate
+     */
+    public function getAggregate($id)
+    {
+        return new Aggregate($this, $id);
     }
 
     /**

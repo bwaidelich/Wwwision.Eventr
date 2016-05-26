@@ -3,9 +3,11 @@ namespace Wwwision\Eventr\Adapters\Doctrine;
 
 use Doctrine\DBAL\Driver\Statement;
 use Wwwision\Eventr\Domain\Dto\Event;
-use Wwwision\Eventr\EventStreamIteratorInterface;
 
-final class DoctrineStreamIterator implements EventStreamIteratorInterface
+/**
+ * Iterator for the doctrine based EventStore
+ */
+final class StreamIterator implements \Iterator
 {
 
     /**

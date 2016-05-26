@@ -5,6 +5,7 @@ use Doctrine\DBAL\Migrations\AbstractMigration;
 use Doctrine\DBAL\Schema\Schema;
 use TYPO3\Flow\Cli\ConsoleOutput;
 use TYPO3\Flow\Core\Bootstrap;
+use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 use Wwwision\Eventr\Eventr;
 use Wwwision\Eventr\WrongExpectedVersionException;
@@ -52,54 +53,60 @@ abstract class AbstractEventrMigration extends AbstractMigration
         $this->output = new ConsoleOutput();
     }
 
-	/**
-	 * @param string $name
-	 * @return AggregateType
-	 */
-	protected function registerOrGetAggregateType($name) {
-		$this->output->outputLine('  Registering AggregateType "%s".', [$name]);
-		try {
-			return $this->eventr->registerAggregateType($name);
-		} catch (\InvalidArgumentException $exception) {
-			$this->output->outputLine('    AggregateType "%s" was already registered, reusing existing one.', [$name]);
-			return $this->eventr->getAggregateType($name);
-		}
-	}
+    /**
+     * @param Schema $schema
+     * @return void
+     */
+    public function down(Schema $schema)
+    {
+        $this->skipIf(true, 'Event migrations are irreversible..');
+    }
 
-	/**
-	 * @param AggregateType $aggregateType
-	 * @param string $eventName
-	 * @param string $eventSchema
-	 */
-	protected function registerOrUpdateEventType(AggregateType $aggregateType, $eventName, $eventSchema = NULL) {
-		try {
-			$aggregateType->registerEventType($eventName, $eventSchema);
-			$this->output->outputLine('    Registered EventType "%s.%s".', [$aggregateType->getName(), $eventName]);
-		} catch (\InvalidArgumentException $exception) {
-			$aggregateType->updateEventType($eventName, $eventSchema);
-			$this->output->outputLine('    EventType "%s.%s" already registered, updating schema.', [$aggregateType->getName(), $eventName]);
-		}
-	}
+    /**
+     * @param string $name
+     * @return AggregateType
+     */
+    protected function registerOrGetAggregateType($name)
+    {
+        $this->output->outputLine('  Registering AggregateType "%s".', [$name]);
+        try {
+            return $this->eventr->registerAggregateType($name);
+        } catch (\InvalidArgumentException $exception) {
+            $this->output->outputLine('    AggregateType "%s" was already registered, reusing existing one.', [$name]);
+            return $this->eventr->getAggregateType($name);
+        }
+    }
 
-	/**
-	 * @param string $projectionName
-	 * @param AggregateType $aggregateType
-	 * @param array $mapping
-	 * @param array $adapterConfiguration
-	 */
-	protected function registerOrUpdateProjection($projectionName, AggregateType $aggregateType, array $mapping, array $adapterConfiguration) {
-		try {
-			$this->eventr->registerProjection($projectionName, $aggregateType, $mapping, $adapterConfiguration);
-			$this->output->outputLine('    Registered Projection "%s".', [$projectionName]);
-		} catch (\InvalidArgumentException $exception) {
-			$projection = $this->eventr->getProjection($projectionName);
-			if ($projection->getAggregateType() !== $aggregateType) {
-				throw new \InvalidArgumentException(sprintf('Projection "%s" is registered for AggregateType "%s" and can\'t be updated to AggregateType "%s"!', $projection->getName(), $projection->getAggregateType(), $aggregateType), 1457373363);
-			}
-			$this->eventr->updateProjection($projectionName, $mapping, $adapterConfiguration);
-			$this->output->outputLine('    Projection "%s" already registered, updating.', [$projectionName]);
-		}
-	}
+    /**
+     * @param AggregateType $aggregateType
+     * @param string $eventName
+     * @param string $eventSchema
+     */
+    protected function registerOrUpdateEventType(AggregateType $aggregateType, $eventName, $eventSchema = NULL)
+    {
+        try {
+            $aggregateType->registerEventType($eventName, $eventSchema);
+            $this->output->outputLine('    Registered EventType "%s.%s".', [$aggregateType->getName(), $eventName]);
+        } catch (\InvalidArgumentException $exception) {
+            $aggregateType->updateEventType($eventName, $eventSchema);
+            $this->output->outputLine('    EventType "%s.%s" already registered, updating schema.', [$aggregateType->getName(), $eventName]);
+        }
+    }
+
+    /**
+     * @param string $projectionName
+     * @param ProjectionConfiguration $configuration
+     */
+    protected function registerOrUpdateProjection($projectionName, ProjectionConfiguration $configuration)
+    {
+        if (!$this->eventr->hasProjection($projectionName)) {
+            $this->eventr->registerProjection($projectionName, $configuration);
+            $this->output->outputLine('    Registered Projection "%s".', [$projectionName]);
+        } else {
+            $this->eventr->updateProjection($projectionName, $configuration);
+            $this->output->outputLine('    Projection "%s" already registered, updating.', [$projectionName]);
+        }
+    }
 
     /**
      * @param string $query
@@ -122,24 +129,23 @@ abstract class AbstractEventrMigration extends AbstractMigration
         /** @noinspection PhpAssignmentInConditionInspection */
         while ($eventData = $statement->fetch(\PDO::FETCH_ASSOC)) {
             $aggregateId = $eventData['id'];
-            unset($eventData['id']);
-            $date = NULL;
-            if (isset($eventData['date'])) {
-                $date = new \DateTimeImmutable($eventData['date']);
-                unset($eventData['date']);
+            $eventMetadata = null;
+            foreach ($eventData as $key => $value) {
+                if (strpos($key, 'metadata:') !== 0) {
+                    continue;
+                }
+                $eventMetadata[substr($key, 9)] = $value;
+                unset($eventData[$key]);
             }
             if ($dataCallback !== null) {
-                $eventData = $dataCallback($eventData);
+                $eventData = $dataCallback($eventData, $eventMetadata);
             }
 
-            $eventMetadata = [
-                'date' => $date,
-            ];
             try {
                 $this->eventr->getAggregate($aggregateName, $aggregateId)->recordEvent($eventType, $eventData, $eventMetadata);
-                $numberImported ++;
+                $numberImported++;
             } catch (WrongExpectedVersionException $exception) {
-                $numberFailed ++;
+                $numberFailed++;
             }
             $this->output->progressAdvance();
         }

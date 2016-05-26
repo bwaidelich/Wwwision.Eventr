@@ -6,6 +6,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager as DoctrineEntityManager;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Utility\Now;
+use Wwwision\Eventr\Domain\Dto\Event;
 use Wwwision\Eventr\Domain\Dto\WritableEvent;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 use Wwwision\Eventr\EventStoreAdapterInterface;
@@ -13,7 +14,10 @@ use Wwwision\Eventr\EventStream;
 use Wwwision\Eventr\ExpectedVersion;
 use Wwwision\Eventr\WrongExpectedVersionException;
 
-class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
+/**
+ * Adapter for the doctrine based EventStore
+ */
+class EventStoreAdapter implements EventStoreAdapterInterface
 {
 
     /**
@@ -58,6 +62,8 @@ class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
         ];
         $this->connection->insert('eventr_events', $eventData);
         $this->connection->commit();
+
+        return new Event($event->getType(), $eventData['version'], $event->getData(), $event->getMetadata());
     }
 
     /**
@@ -99,7 +105,7 @@ class DoctrineEventStoreAdapter implements EventStoreAdapterInterface
             $statement->bindParam(':version', $version);
         }
 
-        $streamIterator = new DoctrineStreamIterator($statement);
+        $streamIterator = new StreamIterator($statement);
         return new EventStream($streamIterator);
     }
 }

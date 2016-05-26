@@ -7,7 +7,6 @@ use TYPO3\Flow\Object\ObjectManagerInterface;
 use TYPO3\Flow\Reflection\ReflectionService;
 use TYPO3\Flow\Utility\Now;
 use Wwwision\Eventr\Domain\Model\AggregateType;
-use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 use Wwwision\Eventr\EventStore;
 use Wwwision\Eventr\ExpectedVersion;
 
@@ -84,20 +83,14 @@ class Aggregate
         $event = new WritableEvent($type, $data);
         $this->addDefaultEventMetadata($event);
 
-        // TODO introduce event bus!?
         $this->emitBeforeEventPublished($this, $event);
 
         $eventType = $this->type->getEventType($event->getType());
         $eventType->validatePayload($event->getData());
 
-        $this->eventStore->writeToAggregateStream($this, $event, $expectVersion);
+        $writtenEvent = $this->eventStore->writeToAggregateStream($this, $event, $expectVersion);
 
-        // TODO eehk, refactor (event bus?)
-        foreach ($this->reflectionService->getAllImplementationClassNamesForInterface(EventHandlerInterface::class) as $eventHandlerClassName) {
-            /** @var EventHandlerInterface $eventHandler */
-            $eventHandler = $this->objectManager->get($eventHandlerClassName);
-            $eventHandler->handle($this, $event);
-        }
+        $this->emitAfterEventPublished($this, $writtenEvent);
     }
 
     /**
@@ -137,5 +130,14 @@ class Aggregate
     {
     }
 
+    /**
+     * @param Aggregate $aggregate
+     * @param Event $event
+     * @return void
+     * @Flow\Signal
+     */
+    protected function emitAfterEventPublished(Aggregate $aggregate, Event &$event)
+    {
+    }
 
 }

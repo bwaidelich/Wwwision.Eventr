@@ -3,6 +3,7 @@ namespace Wwwision\Eventr;
 
 use TYPO3\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
+use Wwwision\Eventr\Domain\Dto\Event;
 use Wwwision\Eventr\Domain\Dto\WritableEvent;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 
@@ -22,12 +23,12 @@ class EventStore
      * @param Aggregate $aggregate
      * @param WritableEvent $event
      * @param int $expectedVersion
-     * @return void
+     * @return Event
      */
     public function writeToAggregateStream(Aggregate $aggregate, WritableEvent $event, $expectedVersion = ExpectedVersion::ANY)
     {
         $streamName = sprintf('%s-%s', $aggregate->getType(), $aggregate->getId());
-        $this->eventStoreAdapter->writeToStream($streamName, $event, $expectedVersion);
+        return $this->eventStoreAdapter->writeToStream($streamName, $event, $expectedVersion);
     }
 
     /**

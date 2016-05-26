@@ -19,20 +19,20 @@ final class EventStream
     private $anyEventCallbacks = [];
 
     /**
-     * @var EventStreamIteratorInterface
+     * @var \Iterator
      */
     private $streamIterator;
 
     /**
-     * @param EventStreamIteratorInterface $streamIterator
+     * @param \Iterator $streamIterator
      */
-    public function __construct(EventStreamIteratorInterface $streamIterator)
+    public function __construct(\Iterator $streamIterator)
     {
         $this->streamIterator = $streamIterator;
     }
 
     /**
-     * @return EventStreamIteratorInterface
+     * @return \Iterator
      */
     public function getStreamIterator()
     {
@@ -62,22 +62,24 @@ final class EventStream
     }
 
     /**
-     * @return string
+     * @return int
      */
     public function replay()
     {
+        $version = 0;
         /** @var Event $event */
-        foreach ($this->streamIterator as $event) {
+        foreach ($this->streamIterator as $version => $event) {
             foreach ($this->anyEventCallbacks as $callback) {
-                call_user_func($callback, $event, $this->streamIterator->key());
+                call_user_func($callback, $event);
             }
             if (!isset($this->eventCallbacks[$event->getType()])) {
                 continue;
             }
             foreach ($this->eventCallbacks[$event->getType()] as $callback) {
-                call_user_func($callback, $event, $this->streamIterator->key());
+                call_user_func($callback, $event);
             }
         }
+        return $version;
     }
 
 }

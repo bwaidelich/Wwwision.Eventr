@@ -2,20 +2,27 @@
 namespace Wwwision\Eventr\Domain\Model;
 
 use Doctrine\ORM\Mapping as ORM;
-use TYPO3\Eel\CompilingEvaluator as EelEvaluator;
-use TYPO3\Eel\Context as EelContext;
-use TYPO3\Eel\Context;
 use TYPO3\Flow\Annotations as Flow;
+use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\Event;
+use Wwwision\Eventr\Domain\Dto\EventInterface;
+use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
+use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 use Wwwision\Eventr\EventStore;
-use Wwwision\Eventr\ProjectionAdapterInterface;
+use Wwwision\Eventr\ProjectionHandlerInterface;
 
 /**
  * @Flow\Entity
  * @ORM\Table(name="eventr_projections")
  */
-class Projection
+class Projection implements EventHandlerInterface
 {
+    /**
+     * @Flow\Inject
+     * @var EventStore
+     */
+    protected $eventStore;
+
     /**
      * @ORM\Id
      * @var string
@@ -39,46 +46,36 @@ class Projection
     protected $version = 0;
 
     /**
-     * @ORM\Column(type="json_array")
-     * @var array
+     * @var string
      */
-    protected $mapping;
+    protected $handlerClassName;
 
     /**
      * @ORM\Column(type="json_array")
      * @var array
      */
-    protected $adapterConfiguration;
+    protected $handlerOptions = array();
 
     /**
-     * @Flow\Inject
-     * @var EventStore
+     * @Flow\Transient
+     * @var ProjectionHandlerInterface
      */
-    protected $eventStore;
-
-    /**
-     * @Flow\Inject
-     * @var EelEvaluator
-     */
-    protected $eelEvaluator;
+    protected $handler;
 
     /**
      * @param string $name
-     * @param AggregateType $aggregateType
-     * @param array $mapping
-     * @param array $adapterConfiguration
-     * @param bool $synchronous
+     * @param ProjectionConfiguration $configuration
      */
-    public function __construct($name, AggregateType $aggregateType, array $mapping, array $adapterConfiguration, $synchronous = false)
+    public function __construct($name, ProjectionConfiguration $configuration)
     {
         $this->name = $name;
-        $this->aggregateType = $aggregateType;
-        $this->mapping = $mapping;
-        if (!isset($adapterConfiguration['className']) || !is_a($adapterConfiguration['className'], ProjectionAdapterInterface::class, true)) {
-            throw new \InvalidArgumentException('Missing adapter className', 1456741361);
+        $this->aggregateType = $configuration->aggregateType;
+        if (!is_a($configuration->handlerClassName, ProjectionHandlerInterface::class, true)) {
+            throw new \InvalidArgumentException(sprintf('Handler className must refer to a class implementing the ProjectionHandlerInterface, got "%s"', $configuration->handlerClassName), 1456741361);
         }
-        $this->adapterConfiguration = $adapterConfiguration;
-        $this->synchronous = $synchronous;
+        $this->handlerClassName = $configuration->handlerClassName;
+        $this->handlerOptions = $configuration->handlerOptions;
+        $this->synchronous = $configuration->synchronous;
     }
 
     /**
@@ -114,97 +111,84 @@ class Projection
     }
 
     /**
-     * @return array
+     * @return string
      */
-    public function getMapping()
+    public function getHandlerClassName()
     {
-        return $this->mapping;
+        return $this->handlerClassName;
     }
 
     /**
-     * @param array $mapping
+     * @param string $handlerClassName
      * @return void
      */
-    public function updateMapping(array $mapping)
+    public function updateHandlerClassName($handlerClassName)
     {
-        $this->mapping = $mapping;
+        $this->handlerClassName = $handlerClassName;
     }
 
     /**
      * @return array
      */
-    public function getAdapterConfiguration()
+    public function getHandlerOptions()
     {
-        return $this->adapterConfiguration;
+        return $this->handlerOptions;
     }
 
     /**
-     * @param array $adapterConfiguration
+     * @param array $handlerOptions
      * @return void
      */
-    public function updateAdapterConfiguration(array $adapterConfiguration)
+    public function updateHandlerOptions(array $handlerOptions)
     {
-        $this->adapterConfiguration = $adapterConfiguration;
+        $this->handlerOptions = $handlerOptions;
     }
 
     /**
-     * @return ProjectionAdapterInterface
+     * @return ProjectionHandlerInterface
      */
-    private function getAdapter()
+    private function getHandler()
     {
-        $handlerOptions = isset($this->adapterConfiguration['options']) ? $this->adapterConfiguration['options'] : [];
-        return new $this->adapterConfiguration['className']($handlerOptions);
-    }
-
-    public function replay($offset = null)
-    {
-        if ($offset === null) {
-            $offset = $this->version;
+        if ($this->handler === null) {
+            $this->handler = new $this->handlerClassName($this->handlerOptions);
         }
-        $eventStream = $this->eventStore->getEventStreamFor($this->aggregateType, $offset);
-        foreach ($this->mapping as $eventType => $expression) {
-            $eventStream->on($eventType, function (Event $event, $version) {
-                $this->handle($event);
-                $this->version = $version;
-            });
-        }
-        $eventStream->replay();
+        return $this->handler;
     }
-
-    public function handle(Event $event)
-    {
-        $aggregateId = (string)$event->getMetadata()['id'];
-        $baseState = $this->getAdapter()->findById($aggregateId);
-        $state = [];
-        // TODO initial state (maybe defer to adapter: "state.foo + 1" => "`table.foo` + 1"
-        // TODO configurable helpers: $eelContext->push(new StringHelper(), 'String');
-        $eelContext = new EelContext(['state' => $baseState]);
-        $eelContext->push($event, 'event');
-
-        foreach ($this->mapping[(string)$event->getType()] as $propertyName => $expression) {
-            $state[$propertyName] = $this->map($eelContext, $state, $expression);
-        }
-        $this->getAdapter()->project($aggregateId, $state, $event);
-    }
-
 
     /**
-     * @param Context $eelContext
-     * @param array $state
-     * @param string $expression
-     * @return array|mixed
+     * Resets the projection state and replays the event stream from the beginning
+     *
+     * @return void
      */
-    private function map($eelContext, array $state, $expression)
+    public function replay()
     {
-        if (is_array($expression)) {
-            $subState = [];
-            foreach ($expression as $subPropertyName => $subExpression) {
-                $subState[$subPropertyName] = $this->map($eelContext, $state, $subExpression);
-            }
-            return $subState;
-        }
-        $eelContext->push($state, 'state');
-        return $this->eelEvaluator->evaluate($expression, $eelContext);
+        $this->getHandler()->resetState();
+        $this->version = 0;
+        $this->replayStream();
     }
 
+    public function catchup()
+    {
+        $this->replayStream($this->version);
+    }
+
+    private function replayStream($offset = 0)
+    {
+        $eventStream = $this->aggregateType->getEventStream($offset);
+        $eventStream->onAny(function (Event $event) {
+            $aggregateId = $event->getMetadata()['id'];
+            $this->getHandler()->handle($this->aggregateType->getAggregate($aggregateId), $event);
+        });
+        $this->version = $eventStream->replay();
+    }
+
+    /**
+     * @param Aggregate $aggregate
+     * @param EventInterface $event
+     * @return void
+     */
+    public function handle(Aggregate $aggregate, EventInterface $event)
+    {
+        $this->getHandler()->handle($aggregate, $event);
+    }
 }
