@@ -1,3 +1,19 @@
+Wwwision:
+  Eventr:
+    eventHandlers:
+      preprocess:
+        'addAggregateIdToMetadata':
+          handlerClassName: 'Wwwision\Eventr\EventHandler\AddAggregateIdToMetadataEventHandler'
+        'addDateToMetadata':
+          handlerClassName: 'Wwwision\Eventr\EventHandler\AddDateToMetadataEventHandler'
+        'verifyPayload':
+          position: 'end'
+          handlerClassName: 'Wwwision\Eventr\EventHandler\VerifyPayloadEventHandler'
+      postprocess:
+        'synchronousProjections':
+          handlerClassName: 'Wwwision\Eventr\EventHandler\SynchronousProjectionEventHandler'
+        'asynchronousProjections':
+          handlerClassName: 'Wwwision\Eventr\EventHandler\AsynchronousProjectionEventHandler'
 TYPO3:
   Jobqueue:
     Common:

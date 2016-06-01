@@ -4,9 +4,9 @@ namespace Wwwision\Eventr\Domain\Dto;
 use Doctrine\ORM\Mapping as ORM;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Object\ObjectManagerInterface;
-use TYPO3\Flow\Reflection\ReflectionService;
-use TYPO3\Flow\Utility\Now;
+use TYPO3\Flow\Utility\PositionalArraySorter;
 use Wwwision\Eventr\Domain\Model\AggregateType;
+use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 use Wwwision\Eventr\EventStore;
 use Wwwision\Eventr\ExpectedVersion;
 
@@ -30,21 +30,21 @@ class Aggregate
 
     /**
      * @Flow\Inject
-     * @var ReflectionService
-     */
-    protected $reflectionService;
-
-    /**
-     * @Flow\Inject
      * @var ObjectManagerInterface
      */
     protected $objectManager;
 
     /**
-     * @Flow\Inject(lazy=false)
-     * @var Now
+     * @Flow\InjectConfiguration(path="eventHandlers.preprocess")
+     * @var array
      */
-    protected $now;
+    protected $preProcessEventHandlers;
+
+    /**
+     * @Flow\InjectConfiguration(path="eventHandlers.postprocess")
+     * @var array
+     */
+    protected $postProcessEventHandlers;
 
     /**
      * @param AggregateType $type
@@ -81,16 +81,54 @@ class Aggregate
     public function emitEvent($type, array $data = [], $expectVersion = ExpectedVersion::ANY)
     {
         $event = new WritableEvent($type, $data);
-        $this->addDefaultEventMetadata($event);
 
-        $this->emitBeforeEventPublished($this, $event);
-
-        $eventType = $this->type->getEventType($event->getType());
-        $eventType->validatePayload($event->getData());
+        $this->handleEvent($this->preProcessEventHandlers, $event);
 
         $writtenEvent = $this->eventStore->writeToAggregateStream($this, $event, $expectVersion);
 
-        $this->emitAfterEventPublished($this, $writtenEvent);
+        $this->handleEvent($this->postProcessEventHandlers, $writtenEvent);
+    }
+
+    /**
+     * @param array $handlerConfigurations
+     * @param EventInterface $event
+     * @return void
+     */
+    private function handleEvent(array $handlerConfigurations, EventInterface $event)
+    {
+        foreach ((new PositionalArraySorter($handlerConfigurations))->toArray() as $handlerName => $handlerConfiguration) {
+            if (!$this->handlerShouldBeTriggered($handlerConfiguration, $event)) {
+                continue;
+            }
+            /** @var EventHandlerInterface $handler */
+            $handler = $this->objectManager->get($handlerConfiguration['handlerClassName']);
+            $handler->handle($this, $event);
+        }
+    }
+
+    /**
+     * @param array $handlerConfiguration
+     * @param EventInterface $event
+     * @return bool
+     */
+    private function handlerShouldBeTriggered(array $handlerConfiguration, EventInterface $event) {
+        if (!isset($handlerConfiguration['events'])) {
+            return true;
+        }
+        foreach ($handlerConfiguration['events'] as $pattern => $enabled) {
+            if (!$enabled) {
+                continue;
+            }
+            list($matchingAggregateType, $matchingEventType) = explode('.', $pattern);
+            if ($matchingAggregateType !== '*' && $matchingAggregateType !== $this->getType()->getName()) {
+                continue;
+            }
+            if ($matchingEventType !== '*' && $matchingEventType !== $event->getType()) {
+                continue;
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -102,22 +140,7 @@ class Aggregate
     public function recordEvent($type, array $data = [], array $metadata = null)
     {
         $event = new WritableEvent($type, $data, $metadata);
-        $this->addDefaultEventMetadata($event);
         $this->eventStore->writeToAggregateStream($this, $event);
-    }
-
-    /**
-     * @param WritableEvent $event
-     * @return void
-     */
-    private function addDefaultEventMetadata(WritableEvent $event)
-    {
-        if (!$event->hasMetadataKey('id')) {
-            $event->addMetadata('id', $this->id);
-        }
-        if (!$event->hasMetadataKey('date')) {
-            $event->addMetadata('date', $this->now->format(DATE_ISO8601));
-        }
     }
 
     /**

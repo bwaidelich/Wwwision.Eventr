@@ -34,7 +34,7 @@ class AsynchronousProjectionEventHandler implements EventHandlerInterface
     {
         // TODO only apply to projections matching stream/event?
         foreach ($this->projectionRepository->findAsynchronousByAggregateType($aggregate->getType()) as $projection) {
-            $this->jobManager->queue('eventr-projection', new StaticMethodCallJob(get_class($projection), 'handle', [$aggregate, $event]));
+            $this->jobManager->queue('eventr-projection', new ProjectionHandleJob($projection->getName(), $aggregate->getType()->getName(), $aggregate->getId(), $event));
         }
     }
 
