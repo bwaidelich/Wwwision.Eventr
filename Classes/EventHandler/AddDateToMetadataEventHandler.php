@@ -5,7 +5,7 @@ use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Utility\Now;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\EventInterface;
-use Wwwision\Eventr\Domain\Repository\ProjectionRepository;
+use Wwwision\Eventr\Domain\Dto\WritableEvent;
 
 /**
  * @Flow\Scope("singleton")
@@ -26,6 +26,9 @@ class AddDateToMetadataEventHandler implements EventHandlerInterface
      */
     public function handle(Aggregate $aggregate, EventInterface $event)
     {
+        if (!$event instanceof WritableEvent) {
+            return;
+        }
         if ($event->hasMetadataKey('date')) {
             return;
         }

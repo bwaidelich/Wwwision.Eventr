@@ -192,10 +192,10 @@ class EventrCommandController extends CommandController
         $projection = $this->eventr->getProjection($projection);
         $this->outputLine('<b>%s</b>', [$projection->getName()]);
         $this->outputLine('AggregateType: <b>%s</b>', [$projection->getAggregateType()->getName()]);
-        $this->outputLine('Adapter Configuration:');
-        $this->outputLine('<i>%s</i>', [json_encode($projection->getHandlerConfiguration(), JSON_PRETTY_PRINT)]);
-        $this->outputLine('Mapping:');
-        $this->outputLine('<i>%s</i>', [json_encode($projection->getMapping(), JSON_PRETTY_PRINT)]);
+        $this->outputLine('Handler class name:');
+        $this->outputLine('<i>%s</i>', [$projection->getHandlerClassName()]);
+        $this->outputLine('Handler options:');
+        $this->outputLine('<i>%s</i>', [json_encode($projection->getHandlerOptions(), JSON_PRETTY_PRINT)]);
     }
 
     /**

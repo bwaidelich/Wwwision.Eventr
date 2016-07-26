@@ -1,9 +1,8 @@
 <?php
 namespace Wwwision\Eventr\EventHandler;
 
+use Flowpack\JobQueue\Common\Job\JobManager;
 use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Jobqueue\Common\Job\JobManager;
-use TYPO3\Jobqueue\Common\Job\StaticMethodCallJob;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\EventInterface;
 use Wwwision\Eventr\Domain\Repository\ProjectionRepository;
