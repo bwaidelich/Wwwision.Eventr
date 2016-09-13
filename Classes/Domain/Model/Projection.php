@@ -233,7 +233,7 @@ class Projection implements EventHandlerInterface
             $this->version = $eventStream->replay($this->batchSize);
             $this->projectionRepository->update($this);
             $this->persistenceManager->whitelistObject($this);
-            $this->persistenceManager->persistAll();
+            $this->persistenceManager->persistAll(true);
         }
 
     }
