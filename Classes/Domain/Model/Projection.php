@@ -3,10 +3,12 @@ namespace Wwwision\Eventr\Domain\Model;
 
 use Doctrine\ORM\Mapping as ORM;
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Persistence\PersistenceManagerInterface;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\Event;
 use Wwwision\Eventr\Domain\Dto\EventInterface;
 use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
+use Wwwision\Eventr\Domain\Repository\ProjectionRepository;
 use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 use Wwwision\Eventr\EventStore;
 use Wwwision\Eventr\GetAggregateIdFromEventInterface;
@@ -58,10 +60,31 @@ class Projection implements EventHandlerInterface
     protected $handlerOptions = array();
 
     /**
+     * @ORM\Column(nullable = TRUE)
+     * @var integer
+     */
+    protected $batchSize = 0;
+
+
+    /**
      * @Flow\Transient
      * @var ProjectionHandlerInterface
      */
     protected $handler;
+
+    /**
+     * @Flow\Transient
+     * @Flow\Inject
+     * @var ProjectionRepository
+     */
+    protected $projectionRepository;
+
+    /**
+     * @Flow\Transient
+     * @Flow\Inject
+     * @var PersistenceManagerInterface
+     */
+    protected $persistenceManager;
 
     /**
      * @param string $name
@@ -77,6 +100,7 @@ class Projection implements EventHandlerInterface
         $this->handlerClassName = $configuration->handlerClassName;
         $this->handlerOptions = $configuration->handlerOptions;
         $this->synchronous = $configuration->synchronous;
+        $this->batchSize = $configuration->batchSize;
     }
 
     /**
@@ -146,6 +170,22 @@ class Projection implements EventHandlerInterface
     }
 
     /**
+     * @return int
+     */
+    public function getBatchSize()
+    {
+        return $this->batchSize;
+    }
+
+    /**
+     * @param int $batchSize
+     */
+    public function updateBatchSize($batchSize)
+    {
+        $this->batchSize = $batchSize;
+    }
+
+    /**
      * @return ProjectionHandlerInterface
      */
     private function getHandler()
@@ -185,7 +225,17 @@ class Projection implements EventHandlerInterface
             }
             $projectionHandler->handle($this->aggregateType->getAggregate($aggregateId), $event);
         });
-        $this->version = $eventStream->replay();
+
+        // When the version does not change anymore, we are finished with the chunks
+        $previousVersion = -1;
+        while ($previousVersion != $this->version) {
+            $previousVersion = $this->version;
+            $this->version = $eventStream->replay($this->batchSize);
+            $this->projectionRepository->update($this);
+            $this->persistenceManager->whitelistObject($this);
+            $this->persistenceManager->persistAll();
+        }
+
     }
 
     /**
