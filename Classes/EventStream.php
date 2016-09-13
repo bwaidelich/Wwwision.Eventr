@@ -62,13 +62,20 @@ final class EventStream
     }
 
     /**
+     * @param int $batchSize the batch size for the replay. If none given, we iterate forever.
      * @return int
      */
-    public function replay()
+    public function replay($batchSize = 0)
     {
         $version = 0;
+        $i = 0;
         /** @var Event $event */
         foreach ($this->streamIterator as $version => $event) {
+            if ($batchSize > 0 && $i > $batchSize) {
+                break;
+            }
+            $i++;
+
             foreach ($this->anyEventCallbacks as $callback) {
                 call_user_func($callback, $event);
             }

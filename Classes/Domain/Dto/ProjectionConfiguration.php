@@ -27,6 +27,11 @@ final class ProjectionConfiguration
     public $synchronous = false;
 
     /**
+     * @var integer
+     */
+    public $batchSize = 0;
+
+    /**
      * @param AggregateType $aggregateType
      * @param string $handlerClassName
      */

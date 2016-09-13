@@ -119,6 +119,9 @@ class Eventr
         if ($newConfiguration->handlerOptions !== $projection->getHandlerOptions()) {
             $projection->updateHandlerOptions($newConfiguration->handlerOptions);
         }
+        if ($newConfiguration->batchSize !== $projection->getBatchSize()) {
+            $projection->updateBatchSize($newConfiguration->batchSize);
+        }
         $this->projectionRepository->update($projection);
     }
 
