@@ -129,7 +129,7 @@ abstract class AbstractEventrMigration extends AbstractMigration
         /** @noinspection PhpAssignmentInConditionInspection */
         while ($eventData = $statement->fetch(\PDO::FETCH_ASSOC)) {
             $aggregateId = $eventData['id'];
-            $eventMetadata = null;
+            $eventMetadata = ['id' => $aggregateId];
             foreach ($eventData as $key => $value) {
                 if (strpos($key, 'metadata:') !== 0) {
                     continue;
