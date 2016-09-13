@@ -9,6 +9,7 @@ use Wwwision\Eventr\Domain\Dto\EventInterface;
 use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
 use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 use Wwwision\Eventr\EventStore;
+use Wwwision\Eventr\GetAggregateIdFromEventInterface;
 use Wwwision\Eventr\ProjectionHandlerInterface;
 
 /**
@@ -175,9 +176,14 @@ class Projection implements EventHandlerInterface
     private function replayStream($offset = 0)
     {
         $eventStream = $this->aggregateType->getEventStream($offset);
-        $eventStream->onAny(function (Event $event) {
-            $aggregateId = $event->getMetadata()['id'];
-            $this->getHandler()->handle($this->aggregateType->getAggregate($aggregateId), $event);
+        $projectionHandler = $this->getHandler();
+        $eventStream->onAny(function (Event $event) use ($projectionHandler) {
+            if ($projectionHandler instanceof GetAggregateIdFromEventInterface) {
+                $aggregateId = $projectionHandler->getAggregateIdFromEvent($event);
+            } else {
+                $aggregateId = $event->getMetadata()['id'];
+            }
+            $projectionHandler->handle($this->aggregateType->getAggregate($aggregateId), $event);
         });
         $this->version = $eventStream->replay();
     }
