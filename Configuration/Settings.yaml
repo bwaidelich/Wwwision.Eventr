@@ -14,7 +14,7 @@ Wwwision:
           handlerClassName: 'Wwwision\Eventr\EventHandler\SynchronousProjectionEventHandler'
         'asynchronousProjections':
           handlerClassName: 'Wwwision\Eventr\EventHandler\AsynchronousProjectionEventHandler'
-TYPO3:
+Flowpack:
   Jobqueue:
     Common:
       queues:
