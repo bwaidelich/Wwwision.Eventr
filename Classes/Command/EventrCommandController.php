@@ -1,7 +1,7 @@
 <?php
 namespace Wwwision\Eventr\Command;
 
-use TYPO3\Eel\CompilingEvaluator;
+use Neos\Eel\CompilingEvaluator;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Cli\CommandController;
 use Neos\Flow\ObjectManagement\ObjectManagerInterface;
