@@ -4,8 +4,8 @@
     "description": "WIP",
     "license": "MIT",
     "require": {
-        "typo3/flow": "~3.0",
-        "flowpack/jobqueue-common": "^1.0"
+        "neos/flow": "*",
+        "flowpack/jobqueue-common": "*"
     },
     "autoload": {
         "psr-4": {
