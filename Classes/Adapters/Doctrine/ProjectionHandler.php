@@ -10,7 +10,7 @@ use TYPO3\Eel\CompilingEvaluator as EelEvaluator;
 use TYPO3\Eel\Context as EelContext;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Persistence\PersistenceManagerInterface;
-use Neos\Flow\Reflection\ObjectAccess;
+use Neos\Utility\ObjectAccess;
 use Neos\Flow\Reflection\ReflectionService;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\Event;

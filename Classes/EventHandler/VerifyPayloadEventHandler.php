@@ -2,8 +2,8 @@
 namespace Wwwision\Eventr\EventHandler;
 
 use Neos\Flow\Annotations as Flow;
-use Neos\Flow\Error\Error;
-use Neos\Flow\Utility\SchemaValidator;
+use Neos\Error\Messages\Error;
+use Neos\Utility\SchemaValidator;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\EventInterface;
 use Wwwision\Eventr\Eventr;
