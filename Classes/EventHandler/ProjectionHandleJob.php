@@ -4,7 +4,7 @@ namespace Wwwision\Eventr\EventHandler;
 use Flowpack\JobQueue\Common\Job\JobInterface;
 use Flowpack\JobQueue\Common\Queue\Message;
 use Flowpack\JobQueue\Common\Queue\QueueInterface;
-use TYPO3\Flow\Annotations as Flow;
+use Neos\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Dto\EventInterface;
 use Wwwision\Eventr\Eventr;
 

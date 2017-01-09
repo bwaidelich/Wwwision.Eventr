@@ -1,7 +1,7 @@
 <?php
 namespace Wwwision\Eventr;
 
-use TYPO3\Flow\Annotations as Flow;
+use Neos\Flow\Annotations as Flow;
 use Wwwision\Eventr\EventHandler\EventHandlerInterface;
 
 interface ProjectionHandlerInterface extends EventHandlerInterface

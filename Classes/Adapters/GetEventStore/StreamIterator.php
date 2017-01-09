@@ -1,10 +1,10 @@
 <?php
 namespace Wwwision\Eventr\Adapters\GetEventStore;
 
-use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Flow\Http\Client\RequestEngineInterface;
-use TYPO3\Flow\Http\Request;
-use TYPO3\Flow\Http\Uri;
+use Neos\Flow\Annotations as Flow;
+use Neos\Flow\Http\Client\RequestEngineInterface;
+use Neos\Flow\Http\Request;
+use Neos\Flow\Http\Uri;
 use Wwwision\Eventr\Domain\Dto\Event;
 
 /**

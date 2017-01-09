@@ -1,7 +1,7 @@
 <?php
 namespace Wwwision\Eventr\EventHandler;
 
-use TYPO3\Flow\Annotations as Flow;
+use Neos\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\Domain\Dto\EventInterface;
 

@@ -1,6 +1,6 @@
-'TYPO3\Flow\Http\Client\RequestEngineInterface':
+'Neos\Flow\Http\Client\RequestEngineInterface':
   scope: 'singleton'
-  className: 'TYPO3\Flow\Http\Client\CurlEngine'
+  className: 'Neos\Flow\Http\Client\CurlEngine'
 
 'Wwwision\Eventr\EventStoreAdapterInterface':
   className: 'Wwwision\Eventr\Adapters\Doctrine\EventStoreAdapter'
