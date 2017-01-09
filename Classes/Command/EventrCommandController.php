@@ -4,7 +4,7 @@ namespace Wwwision\Eventr\Command;
 use TYPO3\Eel\CompilingEvaluator;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Cli\CommandController;
-use TYPO3\Flow\Object\ObjectManagerInterface;
+use TYPO3\Flow\ObjectManagement\ObjectManagerInterface;
 use TYPO3\Flow\Persistence\PersistenceManagerInterface;
 use TYPO3\Flow\Utility\Algorithms;
 use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;

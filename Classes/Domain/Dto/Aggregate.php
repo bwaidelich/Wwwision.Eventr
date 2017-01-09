@@ -3,7 +3,7 @@ namespace Wwwision\Eventr\Domain\Dto;
 
 use Doctrine\ORM\Mapping as ORM;
 use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Flow\Object\ObjectManagerInterface;
+use TYPO3\Flow\ObjectManagement\ObjectManagerInterface;
 use TYPO3\Flow\Utility\PositionalArraySorter;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 use Wwwision\Eventr\EventHandler\EventHandlerInterface;
