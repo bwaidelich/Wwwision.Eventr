@@ -3,8 +3,8 @@ namespace Wwwision\Eventr\Migrations;
 
 use Doctrine\DBAL\Migrations\AbstractMigration;
 use Doctrine\DBAL\Schema\Schema;
-use TYPO3\Flow\Cli\ConsoleOutput;
-use TYPO3\Flow\Core\Bootstrap;
+use Neos\Flow\Cli\ConsoleOutput;
+use Neos\Flow\Core\Bootstrap;
 use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 use Wwwision\Eventr\Eventr;

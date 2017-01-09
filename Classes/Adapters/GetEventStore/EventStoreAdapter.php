@@ -1,12 +1,12 @@
 <?php
 namespace Wwwision\Eventr\Adapters\GetEventStore;
 
-use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Flow\Exception as FlowException;
-use TYPO3\Flow\Http\Client\RequestEngineInterface;
-use TYPO3\Flow\Http\Request;
-use TYPO3\Flow\Http\Uri;
-use TYPO3\Flow\Utility\Algorithms;
+use Neos\Flow\Annotations as Flow;
+use Neos\Flow\Exception as FlowException;
+use Neos\Flow\Http\Client\RequestEngineInterface;
+use Neos\Flow\Http\Request;
+use Neos\Flow\Http\Uri;
+use Neos\Flow\Utility\Algorithms;
 use Wwwision\Eventr\Domain\Dto\Event;
 use Wwwision\Eventr\Domain\Dto\WritableEvent;
 use Wwwision\Eventr\Domain\Model\AggregateType;

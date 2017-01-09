@@ -1,12 +1,12 @@
 <?php
 namespace Wwwision\Eventr\Command;
 
-use TYPO3\Eel\CompilingEvaluator;
-use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Flow\Cli\CommandController;
-use TYPO3\Flow\Object\ObjectManagerInterface;
-use TYPO3\Flow\Persistence\PersistenceManagerInterface;
-use TYPO3\Flow\Utility\Algorithms;
+use Neos\Eel\CompilingEvaluator;
+use Neos\Flow\Annotations as Flow;
+use Neos\Flow\Cli\CommandController;
+use Neos\Flow\ObjectManagement\ObjectManagerInterface;
+use Neos\Flow\Persistence\PersistenceManagerInterface;
+use Neos\Flow\Utility\Algorithms;
 use Wwwision\Eventr\Domain\Dto\ProjectionConfiguration;
 use Wwwision\Eventr\Eventr;
 use Wwwision\Eventr\ExpectedVersion;

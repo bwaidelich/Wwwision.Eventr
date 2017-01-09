@@ -3,8 +3,8 @@ namespace Wwwision\Eventr\Domain\Model;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
-use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Flow\Persistence\PersistenceManagerInterface;
+use Neos\Flow\Annotations as Flow;
+use Neos\Flow\Persistence\PersistenceManagerInterface;
 use Wwwision\Eventr\Domain\Dto\Aggregate;
 use Wwwision\Eventr\EventStore;
 use Wwwision\Eventr\EventStream;

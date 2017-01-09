@@ -1,7 +1,7 @@
 <?php
 namespace Wwwision\Eventr\Domain\Dto;
 
-use TYPO3\Flow\Annotations as Flow;
+use Neos\Flow\Annotations as Flow;
 use Wwwision\Eventr\Domain\Model\AggregateType;
 
 final class ProjectionConfiguration
