@@ -26,7 +26,12 @@ class Version20160913125512 extends AbstractMigration
     {
         $this->abortIf($this->connection->getDatabasePlatform()->getName() != 'mysql', 'Migration can only be executed safely on "mysql".');
 
-        $this->addSql('ALTER TABLE eventr_projections ADD batchsize INT DEFAULT NULL');
+        /**
+         * This migration is empty on purpose. Its content  has been moved to Version20160229153555.php because of
+         * a migration order problem with another dependent package.
+         **/
+        // $this->addSql('ALTER TABLE eventr_projections ADD batchsize INT DEFAULT NULL');
+
     }
 
     /**
@@ -37,6 +42,9 @@ class Version20160913125512 extends AbstractMigration
     {
         $this->abortIf($this->connection->getDatabasePlatform()->getName() != 'mysql', 'Migration can only be executed safely on "mysql".');
 
-        $this->addSql('ALTER TABLE eventr_projections DROP batchsize');
+        /**
+         * See above
+         */
+        // $this->addSql('ALTER TABLE eventr_projections DROP batchsize');
     }
 }
